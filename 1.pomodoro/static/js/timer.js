@@ -25,6 +25,8 @@ const resetButton = document.getElementById("resetButton");
 const statusLabel = document.getElementById("statusLabel");
 const completedSessionsLabel = document.getElementById("completedSessions");
 const focusMinutesLabel = document.getElementById("focusMinutes");
+const timerRingEl = document.querySelector(".timer-ring");
+const rippleRings = document.querySelectorAll(".ripple-ring");
 
 const RADIUS = 92;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -95,6 +97,24 @@ function progressPercent() {
 	return Math.min(1, elapsed / state.sessionDurationMs);
 }
 
+function lerpColor(colorA, colorB, t) {
+	const ar = parseInt(colorA.slice(1, 3), 16);
+	const ag = parseInt(colorA.slice(3, 5), 16);
+	const ab = parseInt(colorA.slice(5, 7), 16);
+	const br = parseInt(colorB.slice(1, 3), 16);
+	const bg = parseInt(colorB.slice(3, 5), 16);
+	const bb = parseInt(colorB.slice(5, 7), 16);
+	return `rgb(${Math.round(ar + (br - ar) * t)}, ${Math.round(ag + (bg - ag) * t)}, ${Math.round(ab + (bb - ab) * t)})`;
+}
+
+function progressColor() {
+	const p = progressPercent();
+	if (p < 0.5) {
+		return lerpColor("#3b82f6", "#f59e0b", p * 2);
+	}
+	return lerpColor("#f59e0b", "#ef4444", (p - 0.5) * 2);
+}
+
 function render() {
 	const key = todayKey();
 	if (state.progress.date !== key) {
@@ -108,6 +128,20 @@ function render() {
 
 	const offset = CIRCUMFERENCE * (1 - progressPercent());
 	ring.style.strokeDashoffset = `${offset}`;
+
+	const color = progressColor();
+	ring.style.stroke = color;
+	for (const el of rippleRings) {
+		el.style.stroke = color;
+	}
+
+	const isWorkRunning = state.timerState === TIMER_STATES.running && state.mode === "work";
+	timerRingEl.classList.toggle("is-running", isWorkRunning);
+	if (isWorkRunning) {
+		startParticles();
+	} else {
+		stopParticles();
+	}
 
 	completedSessionsLabel.textContent = String(state.progress.completed_sessions);
 	focusMinutesLabel.textContent = `${state.progress.focus_minutes} 分`;
@@ -290,11 +324,99 @@ async function loadSettings() {
 	}
 }
 
+// ─── Particle system ─────────────────────────────────────────────────────────
+const particleCanvas = document.getElementById("particleCanvas");
+let particleCtx = null;
+let particles = [];
+let particleAnimId = null;
+
+function initParticleCanvas() {
+	if (!particleCanvas) return;
+	particleCtx = particleCanvas.getContext("2d");
+	resizeParticleCanvas();
+	window.addEventListener("resize", resizeParticleCanvas);
+}
+
+function resizeParticleCanvas() {
+	if (!particleCanvas) return;
+	particleCanvas.width = window.innerWidth;
+	particleCanvas.height = window.innerHeight;
+}
+
+function createParticle() {
+	return {
+		x: Math.random() * particleCanvas.width,
+		y: particleCanvas.height + 10,
+		radius: 2 + Math.random() * 3,
+		speedY: -(0.5 + Math.random() * 0.8),
+		speedX: (Math.random() - 0.5) * 0.5,
+		opacity: 0,
+		maxOpacity: 0.12 + Math.random() * 0.2,
+		fadingIn: true,
+	};
+}
+
+function animateParticles() {
+	if (!particleCtx) return;
+	particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+
+	if (particles.length < 45 && Math.random() < 0.2) {
+		particles.push(createParticle());
+	}
+
+	const color = progressColor();
+	particles = particles.filter((p) => p.opacity > 0 || p.fadingIn);
+
+	for (const p of particles) {
+		p.x += p.speedX;
+		p.y += p.speedY;
+
+		if (p.fadingIn) {
+			p.opacity = Math.min(p.maxOpacity, p.opacity + 0.008);
+			if (p.opacity >= p.maxOpacity) p.fadingIn = false;
+		} else {
+			p.opacity -= 0.004;
+		}
+
+		if (p.y < -10) {
+			p.opacity = 0;
+			continue;
+		}
+
+		particleCtx.globalAlpha = p.opacity;
+		particleCtx.beginPath();
+		particleCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+		particleCtx.fillStyle = color;
+		particleCtx.fill();
+	}
+
+	particleCtx.globalAlpha = 1;
+	particleAnimId = requestAnimationFrame(animateParticles);
+}
+
+function startParticles() {
+	if (!particleCtx || particleAnimId !== null) return;
+	particleAnimId = requestAnimationFrame(animateParticles);
+}
+
+function stopParticles() {
+	if (particleAnimId !== null) {
+		cancelAnimationFrame(particleAnimId);
+		particleAnimId = null;
+	}
+	particles = [];
+	if (particleCtx) {
+		particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+	}
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function initialize() {
 	await loadSettings();
 	state.progress = loadProgress();
 	setMode("work");
 	await syncProgressFromApi();
+	initParticleCanvas();
 	primaryButton.addEventListener("click", handlePrimaryButton);
 	resetButton.addEventListener("click", resetTimer);
 	render();
