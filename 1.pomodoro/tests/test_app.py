@@ -19,11 +19,12 @@ def test_get_today_progress_accepts_date_query_parameter(monkeypatch):
 	response = client.get("/api/progress/today?date=2026-06-09")
 
 	assert response.status_code == 200
-	assert response.get_json() == {
-		"date": "2026-06-09",
-		"completed_sessions": 0,
-		"focus_minutes": 0,
-	}
+	data = response.get_json()
+	assert data["date"] == "2026-06-09"
+	assert data["completed_sessions"] == 0
+	assert data["focus_minutes"] == 0
+	assert data["xp"] == 0
+	assert data["level"] == 1
 
 
 def test_complete_session_rejects_non_work_mode(monkeypatch):
@@ -46,8 +47,9 @@ def test_complete_session_records_work_session(monkeypatch):
 	response = client.post("/api/sessions/complete", json={"mode": "work"})
 
 	assert response.status_code == 201
-	assert response.get_json() == {
-		"date": "2026-06-09",
-		"completed_sessions": 1,
-		"focus_minutes": app_module.SETTINGS["work_minutes"],
-	}
+	data = response.get_json()
+	assert data["date"] == "2026-06-09"
+	assert data["completed_sessions"] == 1
+	assert data["focus_minutes"] == app_module.SETTINGS["work_minutes"]
+	assert data["xp"] == 10
+	assert data["level"] == 1
