@@ -24,7 +24,18 @@ body {
   background: linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
 }
 
+#particleCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .app-shell {
+  position: relative;
+  z-index: 1;
   width: min(960px, 92vw);
   margin: 40px auto;
   display: grid;
@@ -67,6 +78,7 @@ body {
 .ring-svg {
   display: block;
   width: 100%;
+  overflow: visible;
 }
 
 .ring-bg,
@@ -80,11 +92,42 @@ body {
 }
 
 .ring-progress {
-  stroke: var(--accent);
+  stroke: #3b82f6;
   stroke-linecap: round;
   transform-origin: center;
   transform: rotate(-90deg);
-  transition: stroke-dashoffset 0.35s ease;
+  transition: stroke-dashoffset 0.35s ease, stroke 0.5s ease;
+}
+
+.ripple-ring {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 2;
+  opacity: 0;
+  transform-origin: 110px 110px;
+}
+
+@keyframes ripple-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+.timer-ring.is-running .ripple-ring-1 {
+  animation: ripple-expand 2.4s ease-out 0s infinite;
+}
+
+.timer-ring.is-running .ripple-ring-2 {
+  animation: ripple-expand 2.4s ease-out 0.8s infinite;
+}
+
+.timer-ring.is-running .ripple-ring-3 {
+  animation: ripple-expand 2.4s ease-out 1.6s infinite;
 }
 
 .time-label {

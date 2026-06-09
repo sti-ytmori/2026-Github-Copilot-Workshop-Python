@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   </head>
   <body>
+    <canvas id="particleCanvas" aria-hidden="true"></canvas>
     <main class="app-shell">
       <section class="timer-card" aria-label="ポモドーロタイマー">
         <h1 class="title">Pomodoro Timer</h1>
@@ -15,6 +16,9 @@
         <div class="timer-ring" role="img" aria-label="タイマー進捗">
           <svg viewBox="0 0 220 220" class="ring-svg">
             <circle cx="110" cy="110" r="92" class="ring-bg"></circle>
+            <circle cx="110" cy="110" r="92" class="ripple-ring ripple-ring-1"></circle>
+            <circle cx="110" cy="110" r="92" class="ripple-ring ripple-ring-2"></circle>
+            <circle cx="110" cy="110" r="92" class="ripple-ring ripple-ring-3"></circle>
             <circle
               id="progressRing"
               cx="110"
