@@ -5,3 +5,5 @@
 手順は以下を参照してください。
 
 - `1.pomodoro/README.md`
+
+※ 起動手順に加えて、ユニットテスト実行手順も `1.pomodoro/README.md` に記載しています。

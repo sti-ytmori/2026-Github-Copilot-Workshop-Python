@@ -10,8 +10,8 @@
 ## 2. 初回セットアップ
 1. ルートへ移動
 	- `cd /workspaces/2026-Github-Copilot-Workshop-Python`
-2. Flask をインストール
-	- `/workspaces/2026-Github-Copilot-Workshop-Python/.venv/bin/pip install flask`
+2. Flask と pytest をインストール
+	- `/workspaces/2026-Github-Copilot-Workshop-Python/.venv/bin/pip install flask pytest`
 
 ## 3. 起動
 1. アプリディレクトリへ移動
@@ -44,7 +44,15 @@
 
 HTML が返り、`css/style.css` と `js/timer.js` の記述が含まれていれば正常です。
 
-## 7. よくあるエラー
+## 7. ユニットテスト実行
+1. アプリディレクトリへ移動
+	- `cd /workspaces/2026-Github-Copilot-Workshop-Python/1.pomodoro`
+2. pytest を実行
+	- `/workspaces/2026-Github-Copilot-Workshop-Python/.venv/bin/python -m pytest -q`
+
+成功時は `7 passed` のように、全テストが通過した結果が表示されます。
+
+## 8. よくあるエラー
 ### `ModuleNotFoundError: No module named 'flask'`
 原因: システムの `python3` で起動している、または Flask 未インストール。
 
