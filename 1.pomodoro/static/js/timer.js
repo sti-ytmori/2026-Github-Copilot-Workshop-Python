@@ -25,12 +25,40 @@ const resetButton = document.getElementById("resetButton");
 const statusLabel = document.getElementById("statusLabel");
 const completedSessionsLabel = document.getElementById("completedSessions");
 const focusMinutesLabel = document.getElementById("focusMinutes");
+const levelValueLabel = document.getElementById("levelValue");
+const xpValueLabel = document.getElementById("xpValue");
+const streakValueLabel = document.getElementById("streakValue");
+const badgeList = document.getElementById("badgeList");
+const weeklyStatsLabel = document.getElementById("weeklyStats");
+const monthlyStatsLabel = document.getElementById("monthlyStats");
+const weeklyRateBar = document.getElementById("weeklyRateBar");
+const monthlyRateBar = document.getElementById("monthlyRateBar");
 
 const RADIUS = 92;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 ring.style.strokeDasharray = `${CIRCUMFERENCE}`;
 ring.style.strokeDashoffset = `${CIRCUMFERENCE}`;
+
+function defaultProgress(dateText = todayKey()) {
+	return {
+		date: dateText,
+		completed_sessions: 0,
+		focus_minutes: 0,
+		xp: 0,
+		level: 1,
+		xp_to_next_level: 100,
+		streak_days: 0,
+		badges: [
+			{ id: "streak_3days", title: "3日連続", achieved: false },
+			{ id: "weekly_10_sessions", title: "今週10回完了", achieved: false },
+		],
+		stats: {
+			weekly: { completion_rate: 0, average_focus_minutes: 0, total_sessions: 0, daily_series: [] },
+			monthly: { completion_rate: 0, average_focus_minutes: 0, total_sessions: 0, daily_series: [] },
+		},
+	};
+}
 
 const state = {
 	settings: { ...DEFAULT_SETTINGS },
@@ -40,11 +68,7 @@ const state = {
 	remainingMs: DEFAULT_SETTINGS.work_minutes * 60 * 1000,
 	sessionDurationMs: DEFAULT_SETTINGS.work_minutes * 60 * 1000,
 	completedWorkCycles: 0,
-	progress: {
-		date: todayKey(),
-		completed_sessions: 0,
-		focus_minutes: 0,
-	},
+	progress: defaultProgress(),
 };
 
 let timerId = null;
@@ -95,6 +119,64 @@ function progressPercent() {
 	return Math.min(1, elapsed / state.sessionDurationMs);
 }
 
+function normalizeProgress(progress) {
+	const fallback = defaultProgress(todayKey());
+	if (!progress || typeof progress !== "object") {
+		return fallback;
+	}
+
+	const weekly = progress.stats && progress.stats.weekly ? progress.stats.weekly : fallback.stats.weekly;
+	const monthly = progress.stats && progress.stats.monthly ? progress.stats.monthly : fallback.stats.monthly;
+
+	return {
+		...fallback,
+		...progress,
+		date: todayKey(),
+		completed_sessions: Number(progress.completed_sessions) || 0,
+		focus_minutes: Number(progress.focus_minutes) || 0,
+		xp: Number(progress.xp) || 0,
+		level: Number(progress.level) || 1,
+		xp_to_next_level: Number(progress.xp_to_next_level) || 100,
+		streak_days: Number(progress.streak_days) || 0,
+		badges: Array.isArray(progress.badges) ? progress.badges : fallback.badges,
+		stats: {
+			weekly: {
+				...fallback.stats.weekly,
+				...weekly,
+				completion_rate: Number(weekly.completion_rate) || 0,
+				average_focus_minutes: Number(weekly.average_focus_minutes) || 0,
+			},
+			monthly: {
+				...fallback.stats.monthly,
+				...monthly,
+				completion_rate: Number(monthly.completion_rate) || 0,
+				average_focus_minutes: Number(monthly.average_focus_minutes) || 0,
+			},
+		},
+	};
+}
+
+function renderGamification() {
+	levelValueLabel.textContent = `Lv.${state.progress.level}`;
+	xpValueLabel.textContent = `${state.progress.xp} XP`;
+	streakValueLabel.textContent = `${state.progress.streak_days} 日`;
+
+	badgeList.innerHTML = "";
+	state.progress.badges.forEach((badge) => {
+		const item = document.createElement("li");
+		item.className = `badge${badge.achieved ? " badge-achieved" : ""}`;
+		item.textContent = badge.title;
+		badgeList.appendChild(item);
+	});
+
+	const weekly = state.progress.stats.weekly;
+	const monthly = state.progress.stats.monthly;
+	weeklyStatsLabel.textContent = `完了率 ${weekly.completion_rate.toFixed(1)}% / 平均集中 ${weekly.average_focus_minutes.toFixed(1)} 分`;
+	monthlyStatsLabel.textContent = `完了率 ${monthly.completion_rate.toFixed(1)}% / 平均集中 ${monthly.average_focus_minutes.toFixed(1)} 分`;
+	weeklyRateBar.style.width = `${Math.max(0, Math.min(100, weekly.completion_rate))}%`;
+	monthlyRateBar.style.width = `${Math.max(0, Math.min(100, monthly.completion_rate))}%`;
+}
+
 function render() {
 	const key = todayKey();
 	if (state.progress.date !== key) {
@@ -111,6 +193,7 @@ function render() {
 
 	completedSessionsLabel.textContent = String(state.progress.completed_sessions);
 	focusMinutesLabel.textContent = `${state.progress.focus_minutes} 分`;
+	renderGamification();
 }
 
 function setMode(mode) {
@@ -142,19 +225,11 @@ function loadProgress() {
 	try {
 		const raw = window.localStorage.getItem(key);
 		if (!raw) {
-			return { date: todayKey(), completed_sessions: 0, focus_minutes: 0 };
+			return defaultProgress(todayKey());
 		}
-		const parsed = JSON.parse(raw);
-		if (typeof parsed.completed_sessions !== "number" || typeof parsed.focus_minutes !== "number") {
-			return { date: todayKey(), completed_sessions: 0, focus_minutes: 0 };
-		}
-		return {
-			date: todayKey(),
-			completed_sessions: parsed.completed_sessions,
-			focus_minutes: parsed.focus_minutes,
-		};
+		return normalizeProgress(JSON.parse(raw));
 	} catch (_err) {
-		return { date: todayKey(), completed_sessions: 0, focus_minutes: 0 };
+		return defaultProgress(todayKey());
 	}
 }
 
@@ -170,15 +245,14 @@ async function syncProgressFromApi() {
 			return;
 		}
 		const data = await response.json();
-		if (typeof data.completed_sessions === "number" && typeof data.focus_minutes === "number") {
-			const merged = {
-				date: todayKey(),
-				completed_sessions: Math.max(state.progress.completed_sessions, data.completed_sessions),
-				focus_minutes: Math.max(state.progress.focus_minutes, data.focus_minutes),
-			};
-			state.progress = merged;
-			saveProgress(merged);
-		}
+		const merged = normalizeProgress({
+			...state.progress,
+			...data,
+			completed_sessions: Math.max(state.progress.completed_sessions, Number(data.completed_sessions) || 0),
+			focus_minutes: Math.max(state.progress.focus_minutes, Number(data.focus_minutes) || 0),
+		});
+		state.progress = merged;
+		saveProgress(merged);
 	} catch (_err) {
 		// API障害時はローカルデータを継続利用
 	}
@@ -186,13 +260,20 @@ async function syncProgressFromApi() {
 
 async function postCompletedWorkSession() {
 	try {
-		await fetch("/api/sessions/complete", {
+		const response = await fetch("/api/sessions/complete", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({ mode: "work" }),
 		});
+		if (!response.ok) {
+			return;
+		}
+		const data = await response.json();
+		state.progress = normalizeProgress(data);
+		saveProgress(state.progress);
+		render();
 	} catch (_err) {
 		// 送信失敗でもクライアント動作を優先する
 	}
@@ -201,6 +282,10 @@ async function postCompletedWorkSession() {
 function addTodayProgress() {
 	state.progress.completed_sessions += 1;
 	state.progress.focus_minutes += state.settings.work_minutes;
+	state.progress.xp += 10;
+	state.progress.level = Math.floor(state.progress.xp / 100) + 1;
+	state.progress.xp_to_next_level = 100 - (state.progress.xp % 100);
+	state.progress.streak_days = Math.max(1, state.progress.streak_days);
 	saveProgress(state.progress);
 }
 
