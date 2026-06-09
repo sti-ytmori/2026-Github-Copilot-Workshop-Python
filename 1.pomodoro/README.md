@@ -31,8 +31,7 @@
 ブラウザの開発者ツールで以下を確認します。
 
 - Console:
-  - `timer.js loaded` が表示される
-- Network:
+  - エラーが出ていない
   - `static/css/style.css` が 200
   - `static/js/timer.js` が 200
 
