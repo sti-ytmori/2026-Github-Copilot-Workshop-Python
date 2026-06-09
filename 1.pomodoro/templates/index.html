@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="timer-card" aria-label="ポモドーロタイマー">
+        <h1 class="title">Pomodoro Timer</h1>
+        <p id="modeLabel" class="mode-label">作業中</p>
+
+        <div class="timer-ring" role="img" aria-label="タイマー進捗">
+          <svg viewBox="0 0 220 220" class="ring-svg">
+            <circle cx="110" cy="110" r="92" class="ring-bg"></circle>
+            <circle
+              id="progressRing"
+              cx="110"
+              cy="110"
+              r="92"
+              class="ring-progress"
+            ></circle>
+          </svg>
+          <p id="timeLabel" class="time-label">25:00</p>
+        </div>
+
+        <div class="button-row">
+          <button id="primaryButton" class="btn btn-primary" type="button">開始</button>
+          <button id="resetButton" class="btn btn-secondary" type="button">リセット</button>
+        </div>
+
+        <p id="statusLabel" class="status-label">待機中</p>
+      </section>
+
+      <section class="progress-card" aria-label="今日の進捗">
+        <h2>今日の進捗</h2>
+        <div class="progress-grid">
+          <article class="progress-item">
+            <p class="progress-name">完了セッション</p>
+            <p id="completedSessions" class="progress-value">0</p>
+          </article>
+          <article class="progress-item">
+            <p class="progress-name">集中時間</p>
+            <p id="focusMinutes" class="progress-value">0 分</p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+  </body>
+</html>
