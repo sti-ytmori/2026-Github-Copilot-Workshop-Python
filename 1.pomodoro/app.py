@@ -29,6 +29,16 @@ def get_settings():
 @app.route("/api/progress/today", methods=["GET"])
 def get_today_progress():
 	date_key = request.args.get("date")
+	if date_key is not None:
+		parts = date_key.split("-")
+		if (
+			len(parts) != 3
+			or len(parts[0]) != 4
+			or len(parts[1]) != 2
+			or len(parts[2]) != 2
+			or not all(part.isdigit() for part in parts)
+		):
+			return jsonify({"error": "date must be in YYYY-MM-DD format"}), 400
 	progress = progress_service.get_today_progress(date_key=date_key)
 	return jsonify(progress)
 
