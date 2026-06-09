@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f7f7f8;
+  color: #1f2937;
+}
+
+.container {
+  max-width: 720px;
+  margin: 64px auto;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
