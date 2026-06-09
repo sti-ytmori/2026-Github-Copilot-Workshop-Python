@@ -12,6 +12,34 @@
   --shadow: 0 18px 40px rgba(131, 66, 42, 0.16);
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-top: #1f2024;
+  --bg-bottom: #101114;
+  --card: #2a2d34;
+  --card-soft: #242730;
+  --text: #f0f3f8;
+  --muted: #b2b7c3;
+  --accent: #6ea8ff;
+  --accent-soft: #3a4b6a;
+  --line: #414753;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="focus"] {
+  color-scheme: dark;
+  --bg-top: #0f1f14;
+  --bg-bottom: #08110b;
+  --card: #15281c;
+  --card-soft: #102016;
+  --text: #e3f6e8;
+  --muted: #9bc3a4;
+  --accent: #41d67b;
+  --accent-soft: #244e34;
+  --line: #2f5e3f;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -56,6 +84,30 @@ body {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 1rem;
+}
+
+.settings-row {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.setting-item select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: var(--card-soft);
+  color: var(--text);
 }
 
 .timer-ring {
@@ -125,6 +177,16 @@ body {
 .status-label {
   margin: 14px 0 0;
   color: var(--muted);
+}
+
+.sound-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .progress-card {

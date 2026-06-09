@@ -12,6 +12,16 @@ const TIMER_STATES = {
 
 const DEFAULT_SETTINGS = {
 	work_minutes: 25,
+	break_minutes: 5,
+	theme: "light",
+	sounds: {
+		start: true,
+		end: true,
+		tick: false,
+	},
+	work_minutes_options: [15, 25, 35, 45],
+	break_minutes_options: [5, 10, 15],
+	theme_options: ["light", "dark", "focus"],
 	short_break_minutes: 5,
 	long_break_minutes: 15,
 	long_break_interval: 4,
@@ -25,6 +35,12 @@ const resetButton = document.getElementById("resetButton");
 const statusLabel = document.getElementById("statusLabel");
 const completedSessionsLabel = document.getElementById("completedSessions");
 const focusMinutesLabel = document.getElementById("focusMinutes");
+const workMinutesSelect = document.getElementById("workMinutesSelect");
+const breakMinutesSelect = document.getElementById("breakMinutesSelect");
+const themeSelect = document.getElementById("themeSelect");
+const startSoundToggle = document.getElementById("startSoundToggle");
+const endSoundToggle = document.getElementById("endSoundToggle");
+const tickSoundToggle = document.getElementById("tickSoundToggle");
 
 const RADIUS = 92;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -57,10 +73,7 @@ function modeDurationMs(mode) {
 	if (mode === "work") {
 		return state.settings.work_minutes * 60 * 1000;
 	}
-	if (mode === "long_break") {
-		return state.settings.long_break_minutes * 60 * 1000;
-	}
-	return state.settings.short_break_minutes * 60 * 1000;
+	return state.settings.break_minutes * 60 * 1000;
 }
 
 function formatMs(ms) {
@@ -117,6 +130,106 @@ function setMode(mode) {
 	state.mode = mode;
 	state.sessionDurationMs = modeDurationMs(mode);
 	state.remainingMs = state.sessionDurationMs;
+}
+
+function populateSelect(selectElement, options, formatter, currentValue) {
+	selectElement.innerHTML = "";
+	options.forEach((optionValue) => {
+		const option = document.createElement("option");
+		option.value = String(optionValue);
+		option.textContent = formatter(optionValue);
+		if (String(optionValue) === String(currentValue)) {
+			option.selected = true;
+		}
+		selectElement.appendChild(option);
+	});
+}
+
+function applyTheme(theme) {
+	document.documentElement.setAttribute("data-theme", theme);
+}
+
+function playTone(frequency, durationMs) {
+	const AudioCtx = window.AudioContext || window.webkitAudioContext;
+	if (!AudioCtx) {
+		return;
+	}
+	const ctx = new AudioCtx();
+	const oscillator = ctx.createOscillator();
+	const gain = ctx.createGain();
+	oscillator.type = "sine";
+	oscillator.frequency.value = frequency;
+	gain.gain.value = 0.04;
+	oscillator.connect(gain);
+	gain.connect(ctx.destination);
+	oscillator.start();
+	window.setTimeout(() => {
+		oscillator.stop();
+		ctx.close();
+	}, durationMs);
+}
+
+function playStartSound() {
+	if (state.settings.sounds.start) {
+		playTone(660, 120);
+	}
+}
+
+function playEndSound() {
+	if (state.settings.sounds.end) {
+		playTone(440, 220);
+	}
+}
+
+function playTickSound() {
+	if (state.settings.sounds.tick) {
+		playTone(900, 35);
+	}
+}
+
+function savePreferences() {
+	const payload = {
+		work_minutes: state.settings.work_minutes,
+		break_minutes: state.settings.break_minutes,
+		theme: state.settings.theme,
+		sounds: state.settings.sounds,
+	};
+	window.localStorage.setItem("pomodoro-preferences", JSON.stringify(payload));
+}
+
+function loadPreferences() {
+	try {
+		const raw = window.localStorage.getItem("pomodoro-preferences");
+		if (!raw) {
+			return;
+		}
+		const prefs = JSON.parse(raw);
+		state.settings.work_minutes = Number(prefs.work_minutes) || state.settings.work_minutes;
+		state.settings.break_minutes = Number(prefs.break_minutes) || state.settings.break_minutes;
+		state.settings.theme = prefs.theme || state.settings.theme;
+		state.settings.sounds = {
+			start: prefs.sounds?.start ?? state.settings.sounds.start,
+			end: prefs.sounds?.end ?? state.settings.sounds.end,
+			tick: prefs.sounds?.tick ?? state.settings.sounds.tick,
+		};
+	} catch (_err) {
+		// 永続化データが壊れている場合は既定値を使用する
+	}
+}
+
+function renderSettingsControls() {
+	populateSelect(workMinutesSelect, state.settings.work_minutes_options, (m) => `${m}分`, state.settings.work_minutes);
+	populateSelect(breakMinutesSelect, state.settings.break_minutes_options, (m) => `${m}分`, state.settings.break_minutes);
+	populateSelect(
+		themeSelect,
+		state.settings.theme_options,
+		(theme) => (theme === "light" ? "ライト" : theme === "dark" ? "ダーク" : "フォーカス"),
+		state.settings.theme,
+	);
+	startSoundToggle.checked = !!state.settings.sounds.start;
+	endSoundToggle.checked = !!state.settings.sounds.end;
+	tickSoundToggle.checked = !!state.settings.sounds.tick;
+	applyTheme(state.settings.theme);
 }
 
 function stopTick() {
@@ -207,6 +320,7 @@ function addTodayProgress() {
 function finishSession() {
 	stopTick();
 	state.timerState = TIMER_STATES.idle;
+	playEndSound();
 
 	if (state.mode === "work") {
 		state.completedWorkCycles += 1;
@@ -225,6 +339,7 @@ function tick() {
 		return;
 	}
 	state.remainingMs = Math.max(0, state.endTimeMs - Date.now());
+	playTickSound();
 	if (state.remainingMs <= 0) {
 		finishSession();
 		return;
@@ -240,6 +355,7 @@ function startTimer() {
 
 	state.timerState = TIMER_STATES.running;
 	state.endTimeMs = Date.now() + state.remainingMs;
+	playStartSound();
 	startTick();
 	render();
 }
@@ -264,6 +380,39 @@ function resetTimer() {
 	render();
 }
 
+function handleWorkMinutesChange() {
+	state.settings.work_minutes = Number(workMinutesSelect.value) || DEFAULT_SETTINGS.work_minutes;
+	if (state.mode === "work" && state.timerState === TIMER_STATES.idle) {
+		setMode("work");
+	}
+	savePreferences();
+	render();
+}
+
+function handleBreakMinutesChange() {
+	state.settings.break_minutes = Number(breakMinutesSelect.value) || DEFAULT_SETTINGS.break_minutes;
+	if (state.mode !== "work" && state.timerState === TIMER_STATES.idle) {
+		setMode(state.mode);
+	}
+	savePreferences();
+	render();
+}
+
+function handleThemeChange() {
+	state.settings.theme = themeSelect.value || DEFAULT_SETTINGS.theme;
+	applyTheme(state.settings.theme);
+	savePreferences();
+}
+
+function handleSoundToggleChange() {
+	state.settings.sounds = {
+		start: startSoundToggle.checked,
+		end: endSoundToggle.checked,
+		tick: tickSoundToggle.checked,
+	};
+	savePreferences();
+}
+
 function handlePrimaryButton() {
 	if (state.timerState === TIMER_STATES.running) {
 		pauseTimer();
@@ -281,10 +430,25 @@ async function loadSettings() {
 		const data = await response.json();
 		state.settings = {
 			work_minutes: Number(data.work_minutes) || DEFAULT_SETTINGS.work_minutes,
-			short_break_minutes: Number(data.short_break_minutes) || DEFAULT_SETTINGS.short_break_minutes,
-			long_break_minutes: Number(data.long_break_minutes) || DEFAULT_SETTINGS.long_break_minutes,
+			break_minutes: Number(data.break_minutes) || DEFAULT_SETTINGS.break_minutes,
+			theme: data.theme || DEFAULT_SETTINGS.theme,
+			sounds: {
+				start: data.sounds?.start ?? DEFAULT_SETTINGS.sounds.start,
+				end: data.sounds?.end ?? DEFAULT_SETTINGS.sounds.end,
+				tick: data.sounds?.tick ?? DEFAULT_SETTINGS.sounds.tick,
+			},
+			work_minutes_options: Array.isArray(data.work_minutes_options)
+				? data.work_minutes_options
+				: DEFAULT_SETTINGS.work_minutes_options,
+			break_minutes_options: Array.isArray(data.break_minutes_options)
+				? data.break_minutes_options
+				: DEFAULT_SETTINGS.break_minutes_options,
+			theme_options: Array.isArray(data.theme_options) ? data.theme_options : DEFAULT_SETTINGS.theme_options,
+			short_break_minutes: Number(data.short_break_minutes) || Number(data.break_minutes) || DEFAULT_SETTINGS.break_minutes,
+			long_break_minutes: Number(data.long_break_minutes) || Number(data.break_minutes) || DEFAULT_SETTINGS.break_minutes,
 			long_break_interval: Number(data.long_break_interval) || DEFAULT_SETTINGS.long_break_interval,
 		};
+		loadPreferences();
 	} catch (_err) {
 		state.settings = { ...DEFAULT_SETTINGS };
 	}
@@ -292,11 +456,18 @@ async function loadSettings() {
 
 async function initialize() {
 	await loadSettings();
+	renderSettingsControls();
 	state.progress = loadProgress();
 	setMode("work");
 	await syncProgressFromApi();
 	primaryButton.addEventListener("click", handlePrimaryButton);
 	resetButton.addEventListener("click", resetTimer);
+	workMinutesSelect.addEventListener("change", handleWorkMinutesChange);
+	breakMinutesSelect.addEventListener("change", handleBreakMinutesChange);
+	themeSelect.addEventListener("change", handleThemeChange);
+	startSoundToggle.addEventListener("change", handleSoundToggleChange);
+	endSoundToggle.addEventListener("change", handleSoundToggleChange);
+	tickSoundToggle.addEventListener("change", handleSoundToggleChange);
 	render();
 }
 

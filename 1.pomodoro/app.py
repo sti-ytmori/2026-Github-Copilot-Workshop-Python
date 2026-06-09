@@ -10,6 +10,16 @@ progress_service = ProgressService()
 
 SETTINGS = {
 	"work_minutes": 25,
+	"break_minutes": 5,
+	"theme": "light",
+	"sounds": {
+		"start": True,
+		"end": True,
+		"tick": False,
+	},
+	"work_minutes_options": [15, 25, 35, 45],
+	"break_minutes_options": [5, 10, 15],
+	"theme_options": ["light", "dark", "focus"],
 	"short_break_minutes": 5,
 	"long_break_minutes": 15,
 	"long_break_interval": 4,

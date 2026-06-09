@@ -11,6 +11,18 @@ def test_get_settings_returns_expected_payload():
 	assert response.get_json() == app_module.SETTINGS
 
 
+def test_get_settings_includes_customizable_options():
+	client = app_module.app.test_client()
+
+	response = client.get("/api/settings")
+	data = response.get_json()
+
+	assert data["work_minutes_options"] == [15, 25, 35, 45]
+	assert data["break_minutes_options"] == [5, 10, 15]
+	assert data["theme_options"] == ["light", "dark", "focus"]
+	assert data["sounds"] == {"start": True, "end": True, "tick": False}
+
+
 def test_get_today_progress_accepts_date_query_parameter(monkeypatch):
 	service = ProgressService()
 	monkeypatch.setattr(app_module, "progress_service", service)

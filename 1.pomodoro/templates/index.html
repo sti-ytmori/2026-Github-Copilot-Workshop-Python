@@ -11,6 +11,33 @@
       <section class="timer-card" aria-label="ポモドーロタイマー">
         <h1 class="title">Pomodoro Timer</h1>
         <p id="modeLabel" class="mode-label">作業中</p>
+        <div class="settings-row" aria-label="タイマー設定">
+          <label class="setting-item" for="workMinutesSelect">
+            作業
+            <select id="workMinutesSelect">
+              <option value="15">15分</option>
+              <option value="25" selected>25分</option>
+              <option value="35">35分</option>
+              <option value="45">45分</option>
+            </select>
+          </label>
+          <label class="setting-item" for="breakMinutesSelect">
+            休憩
+            <select id="breakMinutesSelect">
+              <option value="5" selected>5分</option>
+              <option value="10">10分</option>
+              <option value="15">15分</option>
+            </select>
+          </label>
+          <label class="setting-item" for="themeSelect">
+            テーマ
+            <select id="themeSelect">
+              <option value="light" selected>ライト</option>
+              <option value="dark">ダーク</option>
+              <option value="focus">フォーカス</option>
+            </select>
+          </label>
+        </div>
 
         <div class="timer-ring" role="img" aria-label="タイマー進捗">
           <svg viewBox="0 0 220 220" class="ring-svg">
@@ -29,6 +56,11 @@
         <div class="button-row">
           <button id="primaryButton" class="btn btn-primary" type="button">開始</button>
           <button id="resetButton" class="btn btn-secondary" type="button">リセット</button>
+        </div>
+        <div class="sound-row" aria-label="サウンド設定">
+          <label><input id="startSoundToggle" type="checkbox" checked />開始音</label>
+          <label><input id="endSoundToggle" type="checkbox" checked />終了音</label>
+          <label><input id="tickSoundToggle" type="checkbox" />tick音</label>
         </div>
 
         <p id="statusLabel" class="status-label">待機中</p>
